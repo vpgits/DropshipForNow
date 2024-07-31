@@ -8,7 +8,7 @@ from langchain_ollama import OllamaLLM
 from langchain_core.prompts import PromptTemplate
 
 app = Flask(__name__)
-CORS(app)  # This will enable CORS for all routes
+CORS(app)  # Enable CORS for all routes
 
 LLAMA_API_URL = "http://localhost:8080/generate"
 ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/wholesale"
@@ -24,11 +24,9 @@ def configure_llama_model():
     return model
 
 def ai_analyze_prompt(prompt):
-    # Use PromptTemplate if ChatPromptTemplate is incompatible
     prompt_template = PromptTemplate.from_template(
         f"Extract key search terms from this prompt: {prompt}\nKey terms:"
     )
-    # Convert PromptTemplate to string format
     formatted_prompt = prompt_template.format_prompt().to_string()
     response = configure_llama_model().invoke(formatted_prompt)
     key_terms = response.strip().split(", ")
@@ -57,8 +55,8 @@ def extract_product_data(url):
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        title = soup.find('h1', class_='product-title-text').text().strip()
-        price = soup.find('span', class_='product-price-value').text().strip()
+        title = soup.find('h1', class_='product-title-text').text.strip()
+        price = soup.find('span', class_='product-price-value').text.strip()
         description = soup.find('div', class_='product-description').text.strip()
         
         product_data = {
@@ -85,6 +83,7 @@ def extract_product_data(url):
 @app.route('/api/search', methods=['POST'])
 def search_products():
     prompt = request.json.get('prompt')
+    print(prompt)
     key_terms = ai_analyze_prompt(prompt)
     product_links = search_aliexpress(key_terms)
     
