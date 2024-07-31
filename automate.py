@@ -1,3 +1,4 @@
+from flask import Flask, request, jsonify
 import csv
 from datetime import datetime
 import time
@@ -7,8 +8,9 @@ from bs4 import BeautifulSoup
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 
-# Configuration variables
-LLAMA_API_URL = "http://localhost:8080/generate"  # Replace with actual Llama model URL
+app = Flask(__name__)
+
+LLAMA_API_URL = "http://localhost:8080/generate"
 ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/wholesale"
 
 def configure_headers():
@@ -27,11 +29,9 @@ def ai_analyze_prompt(prompt):
     )
     response = configure_llama_model().invoke(payload)
     key_terms = response.strip().split(", ")
-    print(f"The response is {key_terms}")
     return key_terms
 
 def search_aliexpress(key_terms):
-
     headers = configure_headers()
     search_url = f"{ALIEXPRESS_SEARCH_URL}?SearchText={'+'.join(key_terms)}"
     try:
@@ -46,12 +46,10 @@ def search_aliexpress(key_terms):
         
         return product_links
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
         return []
 
 def extract_product_data(url):
     headers = configure_headers()
-    
     try:
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -77,31 +75,13 @@ def extract_product_data(url):
             "Variant Inventory Qty": str(random.randint(10, 100)),
             "Image Src": soup.find('img', class_='magnifier-image')['src'],
         }
-        
         return product_data
-
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
         return None
 
-def create_csv_file(prompt, data):
-    filename = f"ai_analyzed_{prompt.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    
-    try:
-        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=data[0].keys())
-
-            writer.writeheader()
-            for product in data:
-                writer.writerow(product)
-        
-        print(f"CSV file '{filename}' has been created.")
-    
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-
-def main():
-    prompt = input("Enter a product prompt: ")
+@app.route('/api/search', methods=['POST'])
+def search_products():
+    prompt = request.json.get('prompt')
     key_terms = ai_analyze_prompt(prompt)
     product_links = search_aliexpress(key_terms)
     
@@ -112,10 +92,7 @@ def main():
             data.append(product_data)
             time.sleep(random.uniform(2, 5))  # Polite scraping
     
-    if data:
-        create_csv_file(prompt, data)
-    else:
-        print("No product data found.")
+    return jsonify(data)
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
