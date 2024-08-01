@@ -10,7 +10,7 @@ import io
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/w/wholesale-fitness-products.html?spm=a2g0o.best.search.0"
+ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/w/wholesale-fitness-products.html?spm=a2g0o.productlist.search.0"
 
 def configure_headers():
     return {
@@ -18,7 +18,7 @@ def configure_headers():
     }
 
 def ai_analyze_prompt(prompt):
-    # This is a placeholder. Replace with actual AI model integration.
+    # Placeholder for actual AI model integration
     return prompt.split()
 
 def search_aliexpress(key_terms):
@@ -33,7 +33,7 @@ def search_aliexpress(key_terms):
             for item in soup.find_all('a', href=True)
             if '/item/' in item['href']
         ]
-        return links
+        return links[:10]  # Limit to 10 results
     except Exception as e:
         print(f"Error searching AliExpress: {e}")
         return []
@@ -76,8 +76,8 @@ def extract_product_data(url):
 @app.route('/api/search', methods=['POST'])
 def search_products():
     prompt = request.json.get('prompt')
-    if not prompt:
-        return jsonify({"error": "No prompt provided"}), 400
+    if not isinstance(prompt, str) or not prompt:
+        return jsonify({"error": "Invalid or missing prompt"}), 400
     
     key_terms = ai_analyze_prompt(prompt)
     product_links = search_aliexpress(key_terms)

@@ -7,7 +7,7 @@ from rarfile import RarFile
 
 # Ensure `yt-dlp` and `rarfile` are installed and accessible in your environment
 
-accessToken = "qwtqwtqt"
+accessToken = ""
 
 def search_tiktok_videos(product_name, max_results=15):
     # Note: TikTok does not provide an official API for search
