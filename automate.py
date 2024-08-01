@@ -4,8 +4,6 @@ import time
 import random
 import requests
 from bs4 import BeautifulSoup
-from langchain_community.llms import Ollama
-from langchain_core.prompts import PromptTemplate
 import csv
 import io
 
@@ -19,16 +17,9 @@ def configure_headers():
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
 
-def configure_llama_model():
-    return Ollama(model="llama3")  # Ensure this model is available
-
 def ai_analyze_prompt(prompt):
-    prompt_template = PromptTemplate.from_template(
-        "Extract key search terms from this prompt: {prompt}\nKey terms:"
-    )
-    formatted_prompt = prompt_template.format(prompt=prompt)
-    response = configure_llama_model().invoke(formatted_prompt)
-    return [term.strip() for term in response.strip().split(",")]
+    # This is a placeholder. Replace with actual AI model integration.
+    return prompt.split()
 
 def search_aliexpress(key_terms):
     headers = configure_headers()
@@ -37,10 +28,12 @@ def search_aliexpress(key_terms):
         response = requests.get(search_url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        return [
+        links = [
             f"https://www.aliexpress.com{item['href']}"
-            for item in soup.find_all('a', href=lambda href: href and href.startswith("/item"))
+            for item in soup.find_all('a', href=True)
+            if '/item/' in item['href']
         ]
+        return links
     except Exception as e:
         print(f"Error searching AliExpress: {e}")
         return []
@@ -83,7 +76,6 @@ def extract_product_data(url):
 @app.route('/api/search', methods=['POST'])
 def search_products():
     prompt = request.json.get('prompt')
-    print(f"The prompt is {prompt}") #work
     if not prompt:
         return jsonify({"error": "No prompt provided"}), 400
     
