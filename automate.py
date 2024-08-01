@@ -10,7 +10,7 @@ import io
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/category/100005259/fitness-body-building.html?spm=a2g0o.category_nav.1.86.1b9348b6p3g8Kx"
+ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/category/100005259/fitness-body-building.html"
 
 def configure_headers():
     return {
@@ -24,10 +24,14 @@ def ai_analyze_prompt(prompt):
 def search_aliexpress(key_terms):
     headers = configure_headers()
     search_url = f"{ALIEXPRESS_SEARCH_URL}?SearchText={'+'.join(key_terms)}"
+    print(f"Searching URL: {search_url}")  # Debug: Print search URL
     try:
         response = requests.get(search_url, headers=headers)
-        soup = BeautifulSoup(response.content, 'html.parser')
+        if response.status_code != 200:
+            print(f"Failed to retrieve search results: {response.status_code}")  # Debug: Print status code
+            return []
         
+        soup = BeautifulSoup(response.content, 'html.parser')
         links = [
             f"https://www.aliexpress.com{item['href']}"
             for item in soup.find_all('a', href=True)
@@ -42,14 +46,18 @@ def extract_product_data(url):
     headers = configure_headers()
     try:
         response = requests.get(url, headers=headers)
-        soup = BeautifulSoup(response.content, 'html.parser')
+        if response.status_code != 200:
+            print(f"Failed to retrieve product page: {response.status_code}")  # Debug: Print status code
+            return None
         
+        soup = BeautifulSoup(response.content, 'html.parser')
         title = soup.find('h1', class_='product-title-text')
         price = soup.find('span', class_='product-price-value')
         description = soup.find('div', class_='product-description')
         image = soup.find('img', class_='magnifier-image')
         
         if not all([title, price, description, image]):
+            print(f"Missing data on product page: {url}")  # Debug: Print URL of product with missing data
             return None
         
         return {
