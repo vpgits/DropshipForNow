@@ -1,9 +1,15 @@
 import requests
 import json
 import os
+import subprocess
+import shutil
+
+# Ensure `yt-dlp` is installed and accessible in your environment
+# You can install it using: pip install yt-dlp
 
 def search_tiktok_videos(product_name, max_results=20):
-    # Note: You would need to replace this with actual API credentials and endpoints
+    # Note: TikTok does not provide an official API for search
+    # This is a placeholder URL, you need to use a proper TikTok API or scraping method
     api_url = "https://api.tiktok.com/v1/search/video"
     headers = {
         "Authorization": "Bearer YOUR_ACCESS_TOKEN"
@@ -15,7 +21,7 @@ def search_tiktok_videos(product_name, max_results=20):
 
     response = requests.get(api_url, headers=headers, params=params)
     if response.status_code == 200:
-        return response.json()['data']
+        return response.json().get('data', [])
     else:
         print(f"Error: {response.status_code}")
         return []
@@ -30,6 +36,19 @@ def export_urls_to_file(videos, filename):
             f.write(f"{video['video_url']}\n")
     print(f"URLs exported to {filename}")
 
+def download_videos(video_urls, download_path):
+    if not os.path.exists(download_path):
+        os.makedirs(download_path)
+    
+    for i, url in enumerate(video_urls, 1):
+        output_path = os.path.join(download_path, f"video_{i}.mp4")
+        # Download video using yt-dlp
+        try:
+            subprocess.run(['yt-dlp', '-f', 'mp4', url, '-o', output_path], check=True)
+            print(f"Downloaded: {output_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error downloading video {url}: {e}")
+
 def main():
     product_name = input("Enter a product name: ")
     videos = search_tiktok_videos(product_name)
@@ -37,6 +56,10 @@ def main():
     if videos:
         display_results(videos)
         export_urls_to_file(videos, f"{product_name}_tiktok_urls.txt")
+        
+        video_urls = [video['video_url'] for video in videos]
+        download_path = os.path.join(os.getcwd(), 'downloads')
+        download_videos(video_urls, download_path)
     else:
         print("No videos found.")
 
