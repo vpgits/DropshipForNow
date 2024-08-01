@@ -3,9 +3,9 @@ import json
 import os
 import subprocess
 import shutil
+from rarfile import RarFile
 
-# Ensure `yt-dlp` is installed and accessible in your environment
-# You can install it using: pip install yt-dlp
+# Ensure `yt-dlp` and `rarfile` are installed and accessible in your environment
 
 def search_tiktok_videos(product_name, max_results=20):
     # Note: TikTok does not provide an official API for search
@@ -49,6 +49,14 @@ def download_videos(video_urls, download_path):
         except subprocess.CalledProcessError as e:
             print(f"Error downloading video {url}: {e}")
 
+def create_rar_from_directory(directory, rar_filename):
+    with RarFile(rar_filename, 'w') as rar:
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                rar.write(file_path, os.path.relpath(file_path, directory))
+    print(f"RAR file created: {rar_filename}")
+
 def main():
     product_name = input("Enter a product name: ")
     videos = search_tiktok_videos(product_name)
@@ -60,6 +68,9 @@ def main():
         video_urls = [video['video_url'] for video in videos]
         download_path = os.path.join(os.getcwd(), 'downloads')
         download_videos(video_urls, download_path)
+        
+        rar_filename = f"{product_name}_tiktok_videos.rar"
+        create_rar_from_directory(download_path, rar_filename)
     else:
         print("No videos found.")
 
