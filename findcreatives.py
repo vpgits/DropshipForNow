@@ -9,7 +9,7 @@ from rarfile import RarFile
 
 accessToken = "qwtqwtqt"
 
-def search_tiktok_videos(product_name, max_results=20):
+def search_tiktok_videos(product_name, max_results=15):
     # Note: TikTok does not provide an official API for search
     # This is a placeholder URL, you need to use a proper TikTok API or scraping method
     api_url = "https://api.tiktok.com/v1/search/video"
