@@ -10,7 +10,7 @@ import io
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/w/wholesale-fitness-products.html?spm=a2g0o.productlist.search.0"
+ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/category/100005259/fitness-body-building.html?spm=a2g0o.category_nav.1.86.1b9348b6p3g8Kx"
 
 def configure_headers():
     return {
