@@ -1,36 +1,34 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import time
 import random
 import requests
 from bs4 import BeautifulSoup
-from langchain_ollama import OllamaLLM
+from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
+import csv
+import io
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-LLAMA_API_URL = "http://localhost:8080/generate"
 ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/wholesale"
 
 def configure_headers():
-    headers = {
+    return {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
-    return headers
 
 def configure_llama_model():
-    model = OllamaLLM(model="llama3")
-    return model
+    return Ollama(model="llama3")  # Ensure this model is available
 
 def ai_analyze_prompt(prompt):
     prompt_template = PromptTemplate.from_template(
-        f"Extract key search terms from this prompt: {prompt}\nKey terms:"
+        "Extract key search terms from this prompt: {prompt}\nKey terms:"
     )
-    formatted_prompt = prompt_template.format_prompt().to_string()
+    formatted_prompt = prompt_template.format(prompt=prompt)
     response = configure_llama_model().invoke(formatted_prompt)
-    key_terms = response.strip().split(", ")
-    return key_terms
+    return [term.strip() for term in response.strip().split(",")]
 
 def search_aliexpress(key_terms):
     headers = configure_headers()
@@ -39,14 +37,12 @@ def search_aliexpress(key_terms):
         response = requests.get(search_url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        product_links = []
-        for item in soup.find_all('a'):
-            href = item.get('href')
-            if href and href.startswith("/item"):
-                product_links.append("https://www.aliexpress.com" + href)
-        
-        return product_links
+        return [
+            f"https://www.aliexpress.com{item['href']}"
+            for item in soup.find_all('a', href=lambda href: href and href.startswith("/item"))
+        ]
     except Exception as e:
+        print(f"Error searching AliExpress: {e}")
         return []
 
 def extract_product_data(url):
@@ -55,14 +51,18 @@ def extract_product_data(url):
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        title = soup.find('h1', class_='product-title-text').text.strip()
-        price = soup.find('span', class_='product-price-value').text.strip()
-        description = soup.find('div', class_='product-description').text.strip()
+        title = soup.find('h1', class_='product-title-text')
+        price = soup.find('span', class_='product-price-value')
+        description = soup.find('div', class_='product-description')
+        image = soup.find('img', class_='magnifier-image')
         
-        product_data = {
+        if not all([title, price, description, image]):
+            return None
+        
+        return {
             "Handle": f"product-{random.randint(1000, 9999)}",
-            "Title": title,
-            "Body (HTML)": f"<p>{description}</p>",
+            "Title": title.text.strip(),
+            "Body (HTML)": f"<p>{description.text.strip()}</p>",
             "Vendor": "AliExpress",
             "Type": "",
             "Tags": "",
@@ -72,18 +72,21 @@ def extract_product_data(url):
             "Option2 Name": "Color",
             "Option2 Value": "Default",
             "Variant SKU": f"SKU-{random.randint(1000, 9999)}",
-            "Variant Price": price,
+            "Variant Price": price.text.strip(),
             "Variant Inventory Qty": str(random.randint(10, 100)),
-            "Image Src": soup.find('img', class_='magnifier-image')['src'],
+            "Image Src": image['src'],
         }
-        return product_data
     except Exception as e:
+        print(f"Error extracting product data: {e}")
         return None
-
+    
 @app.route('/api/search', methods=['POST'])
 def search_products():
     prompt = request.json.get('prompt')
-    print(prompt)
+    print(f"The prompt is {prompt}") #work
+    if not prompt:
+        return jsonify({"error": "No prompt provided"}), 400
+    
     key_terms = ai_analyze_prompt(prompt)
     product_links = search_aliexpress(key_terms)
     
@@ -94,7 +97,25 @@ def search_products():
             data.append(product_data)
             time.sleep(random.uniform(2, 5))  # Polite scraping
     
-    return jsonify(data)
+    if not data:
+        return jsonify({"error": "No products found"}), 404
+
+    # Convert data to CSV format
+    csv_fields = [
+      "Handle", "Title", "Body (HTML)", "Vendor", "Type", "Tags", "Published",
+      "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value",
+      "Variant SKU", "Variant Price", "Variant Inventory Qty", "Image Src"
+    ]
+    
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=csv_fields)
+    writer.writeheader()
+    for row in data:
+        writer.writerow(row)
+
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers['Content-Disposition'] = 'attachment; filename=products.csv'
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True)
