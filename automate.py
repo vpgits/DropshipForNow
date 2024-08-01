@@ -6,29 +6,42 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import io
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
+
+# Configuration variables
+LLAMA_API_URL = "http://localhost:8080/generate"  # Replace with actual Llama model URL
+ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/wholesale"
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-ALIEXPRESS_SEARCH_URL = "https://www.aliexpress.com/category/100005259/fitness-body-building.html"
-
 def configure_headers():
-    return {
+    headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
+    return headers
+
+def configure_llama_model():
+    model = OllamaLLM(model="llama3")
+    return model
 
 def ai_analyze_prompt(prompt):
-    # Placeholder for actual AI model integration
-    return prompt.split()
+    payload = ChatPromptTemplate.from_template(
+        f"Extract key search terms from this prompt: {prompt}\nKey terms:"
+    )
+    response = configure_llama_model().invoke(payload)
+    key_terms = response.strip().split(", ")
+    print(f"The response is {key_terms}")
+    return key_terms
 
 def search_aliexpress(key_terms):
     headers = configure_headers()
     search_url = f"{ALIEXPRESS_SEARCH_URL}?SearchText={'+'.join(key_terms)}"
-    print(f"Searching URL: {search_url}")  # Debug: Print search URL
     try:
         response = requests.get(search_url, headers=headers)
         if response.status_code != 200:
-            print(f"Failed to retrieve search results: {response.status_code}")  # Debug: Print status code
+            print(f"Failed to retrieve search results: {response.status_code}")
             return []
         
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -45,27 +58,16 @@ def search_aliexpress(key_terms):
 def extract_product_data(url):
     headers = configure_headers()
     try:
-        # Clean up URL if needed
-        url = url.split('//www.aliexpress.com')[1]
-        full_url = f"https://www.aliexpress.com{url}"
-        
-        response = requests.get(full_url, headers=headers)
+        response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # Check if the page was loaded correctly
-        if response.status_code != 200:
-            print(f"Error: Failed to load page {full_url}")
-            return None
-        
-        # Use more robust selectors
         title = soup.find('h1', class_='product-title-text')
         price = soup.find('span', class_='product-price-value')
         description = soup.find('div', class_='product-description')
         image = soup.find('img', class_='magnifier-image')
 
-        # Log missing elements
         if not all([title, price, description, image]):
-            print(f"Missing data on product page: {full_url}")
+            print(f"Missing data on product page: {url}")
             return None
         
         return {
@@ -89,7 +91,6 @@ def extract_product_data(url):
         print(f"Error extracting product data: {e}")
         return None
 
-    
 @app.route('/api/search', methods=['POST'])
 def search_products():
     prompt = request.json.get('prompt')
