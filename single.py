@@ -44,7 +44,7 @@ def save_to_csv(product_data):
     
     # Save to CSV
     df.to_csv('aliexpress_product_data.csv', index=False)
-    print('CSV file has been created: aliexpress_product_data.csv')
+    print(f'CSV file has been created: {df}')
 
 def main():
     # Get the URL from the user
