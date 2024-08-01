@@ -27,10 +27,11 @@ def configure_llama_model():
     return model
 
 def ai_analyze_prompt(prompt):
-    payload = ChatPromptTemplate.from_template(
+    chat_prompt = ChatPromptTemplate.from_template(
         f"Extract key search terms from this prompt: {prompt}\nKey terms:"
     )
-    response = configure_llama_model().invoke(payload)
+    formatted_prompt = chat_prompt.format_prompt()
+    response = configure_llama_model().invoke(formatted_prompt)
     key_terms = response.strip().split(", ")
     print(f"The response is {key_terms}")
     return key_terms
@@ -112,9 +113,9 @@ def search_products():
 
     # Convert data to CSV format
     csv_fields = [
-      "Handle", "Title", "Body (HTML)", "Vendor", "Type", "Tags", "Published",
-      "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value",
-      "Variant SKU", "Variant Price", "Variant Inventory Qty", "Image Src"
+        "Handle", "Title", "Body (HTML)", "Vendor", "Type", "Tags", "Published",
+        "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value",
+        "Variant SKU", "Variant Price", "Variant Inventory Qty", "Image Src"
     ]
     
     output = io.StringIO()
