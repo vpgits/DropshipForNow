@@ -45,25 +45,33 @@ def search_aliexpress(key_terms):
 def extract_product_data(url):
     headers = configure_headers()
     try:
-        response = requests.get(url, headers=headers)
+        # Clean up URL if needed
+        url = url.split('//www.aliexpress.com')[1]
+        full_url = f"https://www.aliexpress.com{url}"
+        
+        response = requests.get(full_url, headers=headers)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Check if the page was loaded correctly
         if response.status_code != 200:
-            print(f"Failed to retrieve product page: {response.status_code}")  # Debug: Print status code
+            print(f"Error: Failed to load page {full_url}")
             return None
         
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # Use more robust selectors
         title = soup.find('h1', class_='product-title-text')
         price = soup.find('span', class_='product-price-value')
         description = soup.find('div', class_='product-description')
         image = soup.find('img', class_='magnifier-image')
-        
+
+        # Log missing elements
         if not all([title, price, description, image]):
-            print(f"Missing data on product page: {url}")  # Debug: Print URL of product with missing data
+            print(f"Missing data on product page: {full_url}")
             return None
         
         return {
             "Handle": f"product-{random.randint(1000, 9999)}",
-            "Title": title.text.strip(),
-            "Body (HTML)": f"<p>{description.text.strip()}</p>",
+            "Title": title.text.strip() if title else "No Title",
+            "Body (HTML)": f"<p>{description.text.strip()}</p>" if description else "<p>No Description</p>",
             "Vendor": "AliExpress",
             "Type": "",
             "Tags": "",
@@ -73,13 +81,14 @@ def extract_product_data(url):
             "Option2 Name": "Color",
             "Option2 Value": "Default",
             "Variant SKU": f"SKU-{random.randint(1000, 9999)}",
-            "Variant Price": price.text.strip(),
+            "Variant Price": price.text.strip() if price else "No Price",
             "Variant Inventory Qty": str(random.randint(10, 100)),
-            "Image Src": image['src'],
+            "Image Src": image['src'] if image else "No Image",
         }
     except Exception as e:
         print(f"Error extracting product data: {e}")
         return None
+
     
 @app.route('/api/search', methods=['POST'])
 def search_products():
