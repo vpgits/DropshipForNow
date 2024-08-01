@@ -12,8 +12,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 
-# from prod_spec import get_product_specs  # Ensure you have this module or replace with relevant code
-
 # Variables to change according to preferences
 myUrl = 'https://www.aliexpress.com/w/wholesale-fitness-products.html?spm=a2g0o.productlist.auto_suggest.2.5297338cHL9JXh'
 output_file = 'products.json'
@@ -92,7 +90,7 @@ def main():
             current_time = time.time()
             elapsed_time = current_time - start_time
 
-            browser.find_element_by_tag_name('body').send_keys(Keys.PAGE_DOWN)
+            browser.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
             time.sleep(0.5)
 
             if elapsed_time > seconds:
@@ -127,7 +125,7 @@ def main():
         di['title'], di['store'], temp_price, temp_review, temp_nb_sold, di['thumbnail_link'], di['prod_link'] = el
         
         # Turn price and number sold to numbers
-        temp_price_lst = re.findall('\d+', temp_price)
+        temp_price_lst = re.findall(r'\d+', temp_price)
         el = ''.join(temp_price_lst[:-1])
         di['price'] = float(el + '.' + temp_price_lst[-1])
 
@@ -135,7 +133,7 @@ def main():
         di['review'] = float(temp_review)
         
         # Number sold in int format
-        di['nb_sold'] = int(re.findall('\d+', temp_nb_sold)[0])
+        di['nb_sold'] = int(re.findall(r'\d+', temp_nb_sold)[0])
         di['category'] = category
         prods.append(di)
 
