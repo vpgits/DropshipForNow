@@ -5,7 +5,6 @@ import subprocess
 import shutil
 from rarfile import RarFile
 
-# Ensure `yt-dlp` and `rarfile` are installed and accessible in your environment
 
 accessToken = ""
 
