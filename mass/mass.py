@@ -46,3 +46,4 @@ def schedule_messages():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    print(f"Servers up on port {app}")
