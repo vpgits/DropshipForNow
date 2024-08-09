@@ -1,0 +1,23 @@
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  links     Link[]
+}
+
+model Link {
+  id           Int      @id @default(autoincrement())
+  originalUrl  String
+  affiliateUrl String
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  sales        Sale[]
+}
+
+model Sale {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  linkId    Int
+  link      Link     @relation(fields: [linkId], references: [id])
+  createdAt DateTime @default(now())
+}

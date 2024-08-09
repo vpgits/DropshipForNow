@@ -2,12 +2,44 @@
 import { parse } from 'csv-parse/sync';
 import formidable from 'formidable';
 import fs from 'fs/promises';
+import axios from 'axios';
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+// You would get these from your WhatsApp Business API setup
+const WHATSAPP_API_URL = 'https://your-whatsapp-api-endpoint.com';
+const WHATSAPP_API_TOKEN = 'your-whatsapp-api-token';
+
+async function sendWhatsAppMessage(phoneNumber, message, mediaUrl = null) {
+  const data = {
+    messaging_product: "whatsapp",
+    to: phoneNumber,
+    type: "text",
+    text: { body: message }
+  };
+
+  if (mediaUrl) {
+    data.type = "image";  // or "audio", "document", "video" as appropriate
+    data.image = { link: mediaUrl };
+  }
+
+  try {
+    const response = await axios.post(`${WHATSAPP_API_URL}/messages`, data, {
+      headers: {
+        'Authorization': `Bearer ${WHATSAPP_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending WhatsApp message:', error);
+    throw error;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -36,30 +68,28 @@ export default async function handler(req, res) {
       const fileContent = await fs.readFile(csvFile.filepath, 'utf8');
       const records = parse(fileContent, { columns: true, skip_empty_lines: true });
 
-      let mediaInfo = null;
+      let mediaUrl = null;
       if (mediaFile) {
-        // In a real application, you'd process and store the media file here
-        mediaInfo = {
-          filename: mediaFile.originalFilename,
-          type: mediaFile.mimetype,
-          size: mediaFile.size,
-        };
+        // In a real application, you'd upload the media file to a storage service
+        // and get a public URL to use with the WhatsApp API
+        mediaUrl = 'https://example.com/path/to/uploaded/media.jpg';
       }
 
-      const scheduled = records.map(record => {
+      const scheduled = [];
+
+      for (const record of records) {
         const { phone_number, time } = record;
-        // Here you would integrate with a WhatsApp API to actually schedule the message
-        // For now, we'll just return a mock scheduling confirmation
-        let scheduledMessage = `Message scheduled for ${phone_number} at ${time}`;
-        if (mediaInfo) {
-          scheduledMessage += ` with media: ${mediaInfo.filename}`;
+        try {
+          await sendWhatsAppMessage(phone_number, message, mediaUrl);
+          scheduled.push(`Message scheduled for ${phone_number} at ${time}`);
+        } catch (error) {
+          scheduled.push(`Error scheduling message for ${phone_number}: ${error.message}`);
         }
-        return scheduledMessage;
-      });
+      }
 
       res.status(200).json({ scheduled });
     } catch (error) {
-      res.status(500).json({ error: 'Error processing files' });
+      res.status(500).json({ error: 'Error processing files or sending messages' });
     }
   });
 }

@@ -31,7 +31,7 @@ export default function Home() {
     }
 
     try {
-      const response = await axios.post('/api/schedule', formData, {
+      const response = await axios.post('/api/home', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setResults(response.data.scheduled);
