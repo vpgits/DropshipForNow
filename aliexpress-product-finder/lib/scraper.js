@@ -1,10 +1,28 @@
 import puppeteer from 'puppeteer';
 import { Redis } from '@upstash/redis';
+import axios from 'axios';
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL,
   token: process.env.UPSTASH_REDIS_TOKEN,
 });
+
+const CURRENCY_CONVERSION_API_URL = 'https://api.exchangerate-api.com/v4/latest/USD'; // Replace with your currency conversion API URL
+
+// Function to convert currency to USD
+async function convertToUSD(price, fromCurrency) {
+  try {
+    const response = await axios.get(CURRENCY_CONVERSION_API_URL);
+    const rates = response.data.rates;
+    const conversionRate = rates[fromCurrency];
+    if (conversionRate) {
+      return (price / conversionRate).toFixed(2); // Convert and round to 2 decimal places
+    }
+  } catch (error) {
+    console.error('Currency conversion error:', error);
+  }
+  return price; // Return original price if conversion fails
+}
 
 export async function scrapeAliExpress(searchTerm) {
   const cacheKey = `aliexpress:${searchTerm}`;
@@ -15,10 +33,14 @@ export async function scrapeAliExpress(searchTerm) {
   // If cache exists, parse it as JSON and return
   if (cachedResults) {
     try {
-      return JSON.parse(cachedResults);
+      // Check if cachedResults is already an object
+      if (typeof cachedResults === 'string') {
+        return JSON.parse(cachedResults);
+      }
+      return cachedResults; // If it's an object, return it directly
     } catch (error) {
       console.error('Error parsing cached results:', error);
-      // If parsing fails, we proceed to scrape the data again
+      // If parsing fails, proceed to scrape the data again
     }
   }
 
@@ -27,12 +49,41 @@ export async function scrapeAliExpress(searchTerm) {
   await page.goto(`https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(searchTerm)}`);
 
   const defaultImageUrl = '/images/default-image.jpg'; // Path to your default image
-  const products = await page.evaluate((defaultImageUrl) => {
-    return Array.from(document.querySelectorAll('.search-item-card-wrapper-gallery')).map(el => ({
-      name: el.querySelector('.multi--titleText--nXeOvyr')?.innerText || 'No name available',
-      price: el.querySelector('.multi--price-sale--U-S0jtj')?.innerText || 'No price available',
-      image: el.querySelector('.images--item--3XZa6xf img')?.src || defaultImageUrl,
-      url: el.querySelector('a')?.href || 'No URL available',
+  const products = await page.evaluate(async (defaultImageUrl) => {
+    const currency = 'USD'; // Assume prices are initially in USD or set this based on local currency
+    const exchangeRates = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(response => response.json())
+      .then(data => data.rates);
+    
+    function parsePrice(priceText) {
+      // Extract the numeric part of the price
+      const priceMatch = priceText.match(/[\d.,]+/);
+      if (priceMatch) {
+        return parseFloat(priceMatch[0].replace(',', ''));
+      }
+      return null;
+    }
+
+    async function convertToUSD(price, fromCurrency) {
+      const conversionRate = exchangeRates[fromCurrency];
+      if (conversionRate) {
+        return (price / conversionRate).toFixed(2); // Convert and round to 2 decimal places
+      }
+      return price; // Return original price if conversion fails
+    }
+
+    return Promise.all(Array.from(document.querySelectorAll('.search-item-card-wrapper-gallery')).map(async el => {
+      const priceText = el.querySelector('.multi--price-sale--U-S0jtj')?.innerText || 'No price available';
+      const localCurrency = 'CNY'; // Replace this with the detected local currency if available
+      const price = parsePrice(priceText);
+      const priceInUSD = price ? await convertToUSD(price, localCurrency) : 'No price available';
+
+      return {
+        name: el.querySelector('.multi--titleText--nXeOvyr')?.innerText || 'No name available',
+        price: priceInUSD,
+        image: el.querySelector('.images--item--3XZa6xf img')?.src || defaultImageUrl,
+        url: el.querySelector('a')?.href || 'No URL available',
+      };
     }));
   }, defaultImageUrl);
 
@@ -43,4 +94,3 @@ export async function scrapeAliExpress(searchTerm) {
   
   return products;
 }
-
