@@ -1,5 +1,5 @@
 {
-  "name": "affiliate-marketing-app",
+  "name": "meme-coin-launcher",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chakra-ui/react": "^2.8.2",
-    "@emotion/react": "^11.13.0",
-    "@emotion/styled": "^11.13.0",
-    "@prisma/client": "^5.18.0",
-    "axios": "^1.7.3",
-    "framer-motion": "^11.3.24",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "@openzeppelin/contracts": "^5.0.2",
+    "chai": "^5.1.1",
+    "ethereum-waffle": "^4.0.10",
+    "ethers": "^6.13.2",
+    "hardhat": "^2.22.8",
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18"
@@ -23,7 +24,6 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "postcss": "^8",
-    "prisma": "^5.18.0",
     "tailwindcss": "^3.4.1"
   }
 }
