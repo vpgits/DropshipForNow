@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import SearchForm from './Components/SearchForm';
 import ProductList from './Components/ProductList';
+import { saveAs } from 'file-saver'; // Import file-saver to save the CSV file
+import Papa from 'papaparse'; // Import papaparse to convert JSON to CSV
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -24,7 +26,14 @@ export default function Home() {
   };
 
   const handleExport = () => {
-    // Implement CSV export logic
+    // Convert products array to CSV
+    const csv = Papa.unparse(products);
+
+    // Create a Blob from the CSV string
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+    // Trigger the download using file-saver
+    saveAs(blob, 'products.csv');
   };
 
   return (
