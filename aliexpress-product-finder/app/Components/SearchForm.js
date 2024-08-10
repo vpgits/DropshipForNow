@@ -12,6 +12,7 @@ export default function SearchForm({ onSearch }) {
     <form onSubmit={handleSubmit} className="mb-4">
       <input
         type="text"
+        style={{color:"black"}}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Enter product or niche"
