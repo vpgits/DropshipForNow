@@ -12,8 +12,9 @@ export async function POST(request) {
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
     }
-
+    
     const { searchTerm } = await request.json();
+    console.log(searchTerm)
     if (!searchTerm) {
       return NextResponse.json({ error: 'Search term is required' }, { status: 400 });
     }

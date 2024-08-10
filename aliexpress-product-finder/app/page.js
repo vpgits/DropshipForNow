@@ -16,7 +16,7 @@ export default function Home() {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(searchTerms),
+        body: JSON.stringify({ searchTerm: searchTerms }),
       });
       if(response.status===400){
         setStatus("Ack! We were unable to find results for your prompt :(")
