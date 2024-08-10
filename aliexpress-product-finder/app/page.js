@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import SearchForm from './Components/SearchForm';
 import ProductList from './Components/ProductList';
-import { saveAs } from 'file-saver'; // Import file-saver to save the CSV file
+import { saveAs } from 'file-saver';
 import Papa from 'papaparse'; // Import papaparse to convert JSON to CSV
 
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [status,setStatus] = useState("")
 
   const handleSearch = async (searchTerms) => {
     setLoading(true);
@@ -17,6 +18,9 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(searchTerms),
       });
+      if(response.status===400){
+        setStatus("Ack! We were unable to find results for your prompt :(")
+      }
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -45,6 +49,7 @@ export default function Home() {
       ) : (
         <ProductList products={products} onExport={handleExport} />
       )}
+      <h1>{status}</h1>
     </div>
   );
 }

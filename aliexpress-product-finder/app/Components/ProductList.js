@@ -4,9 +4,9 @@ export default function ProductList({ products, onExport }) {
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
+        {products && products.length ? products.map((product) => (
           <ProductCard key={product.id} product={product} />
-        ))}
+        )): <h1>No results found</h1>}
       </div>
       {products.length > 0 && (
         <button
