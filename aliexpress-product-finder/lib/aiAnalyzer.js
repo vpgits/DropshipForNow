@@ -1,24 +1,25 @@
-import { Configuration, OpenAIApi } from 'openai'; // Correct import
+import { google } from 'googleapis';
 import retry from 'async-retry';
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const gemini = google.gemini({
+  version: 'v1', // This may vary based on the API version
+  auth: process.env.GOOGLE_API_KEY, // Set up your authentication
 });
-const openai = new OpenAIApi(configuration);
 
 async function analyzeProduct(product) {
   const prompt = `Analyze this product as a potential "winning product": ${product.name}. Rate it on a scale of 1-10.`;
 
   return retry(async (bail) => {
     try {
-      const response = await openai.createCompletion({
-        model: "text-davinci-002",
-        prompt: prompt,
-        max_tokens: 50,
+      const response = await gemini.products.analyze({
+        requestBody: {
+          prompt: prompt,
+          max_tokens: 50, // Adjust as needed based on API docs
+        },
       });
 
-      // Extracting the first number found in the response text
-      const aiScoreMatch = response.data.choices[0].text.match(/\d+/);
+      // Assuming the response contains a similar structure to OpenAI, extract the score
+      const aiScoreMatch = response.data.analysis.match(/\d+/);
       if (!aiScoreMatch) {
         throw new Error("AI response did not contain a valid score");
       }
