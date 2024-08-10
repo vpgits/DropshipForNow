@@ -1,25 +1,24 @@
-import { google } from 'googleapis';
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 import retry from 'async-retry';
 
-const gemini = google.gemini({
-  version: 'v1', // This may vary based on the API version
-  auth: process.env.GOOGLE_API_KEY, // Set up your authentication
-});
+// Initialize GoogleGenerativeAI with your API key
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+
+// Create a generative model instance
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 async function analyzeProduct(product) {
   const prompt = `Analyze this product as a potential "winning product": ${product.name}. Rate it on a scale of 1-10.`;
 
   return retry(async (bail) => {
     try {
-      const response = await gemini.products.analyze({
-        requestBody: {
-          prompt: prompt,
-          max_tokens: 50, // Adjust as needed based on API docs
-        },
-      });
+      // Generate content using the Gemini model
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = await response.text();
 
-      // Assuming the response contains a similar structure to OpenAI, extract the score
-      const aiScoreMatch = response.data.analysis.match(/\d+/);
+      // Extract the AI score from the response text
+      const aiScoreMatch = text.match(/\d+/);
       if (!aiScoreMatch) {
         throw new Error("AI response did not contain a valid score");
       }
