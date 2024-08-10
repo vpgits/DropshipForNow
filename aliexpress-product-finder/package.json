@@ -17,6 +17,7 @@
     "googleapis": "^140.0.1",
     "json2csv": "^6.0.0-alpha.2",
     "next": "14.2.5",
+    "nextjs-cors": "^2.2.0",
     "openai": "^4.55.4",
     "papaparse": "^5.4.1",
     "puppeteer": "^23.0.2",

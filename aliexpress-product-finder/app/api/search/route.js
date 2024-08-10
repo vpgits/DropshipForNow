@@ -4,7 +4,6 @@ import { analyzeProducts } from '@/lib/aiAnalyzer';
 import { rateLimiter } from '@/lib/rateLimiter';
 import { NextResponse } from 'next/server';
 
-// Named export for the POST method
 export async function POST(request) {
   try {
     // Apply rate limiting
@@ -14,7 +13,6 @@ export async function POST(request) {
     }
     
     const { searchTerm } = await request.json();
-    console.log(searchTerm)
     if (!searchTerm) {
       return NextResponse.json({ error: 'Search term is required' }, { status: 400 });
     }
@@ -23,9 +21,36 @@ export async function POST(request) {
     const analyzedProducts = await analyzeProducts(scrapedProducts);
     const topProducts = analyzedProducts.slice(0, 15); // Get top 15 products
 
-    return NextResponse.json(topProducts, { status: 200 });
+    const response = NextResponse.json(topProducts, { status: 200 });
+
+    // Set CORS headers
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Origin', '*'); // Replace '*' with your frontend domain
+    response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    response.headers.set(
+      'Access-Control-Allow-Headers',
+      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
+
+    return response;
   } catch (error) {
     console.error('Search failed:', error);
     return NextResponse.json({ error: 'Failed to search products' }, { status: 500 });
   }
+}
+
+// Handle preflight requests (OPTIONS)
+export async function OPTIONS() {
+  const response = new NextResponse(null, { status: 204 });
+
+  // Set CORS headers
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Origin', '*'); // Replace '*' with your frontend domain
+  response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  return response;
 }
